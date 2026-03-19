@@ -1,0 +1,147 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: api-gateway
+  config:
+    import: optional:configserver:http://localhost:8888
+  redis:
+    host: localhost
+    port: 6379
+  cloud:
+    gateway:
+      discovery:
+        locator:
+          enabled: true
+          lower-case-service-id: true
+      default-filters:
+        - name: RequestRateLimiter
+          args:
+            redis-rate-limiter.replenishRate: 20
+            redis-rate-limiter.burstCapacity: 40
+            redis-rate-limiter.requestedTokens: 1
+            key-resolver: "#{@ipKeyResolver}"
+      routes:
+        # Auth Service
+        - id: auth-service
+          uri: lb://auth-service
+          predicates:
+            - Path=/api/auth/**
+          filters:
+            - name: CircuitBreaker
+              args:
+                name: auth-service
+                fallbackUri: forward:/fallback/auth
+
+        # Employee Service
+        - id: employee-service
+          uri: lb://employee-service
+          predicates:
+            - Path=/api/employees/**
+          filters:
+            - AuthenticationFilter
+            - name: CircuitBreaker
+              args:
+                name: employee-service
+                fallbackUri: forward:/fallback/employee
+
+        # Admin Leave Quotas -> Leave Service
+        - id: admin-leave-quotas
+          uri: lb://leave-service
+          predicates:
+            - Path=/api/admin/leave-quotas/**
+          filters:
+            - AuthenticationFilter
+            - RewritePath=/api/admin/leave-quotas(?<segment>.*), /api/leaves/admin/quotas${segment}
+            - name: CircuitBreaker
+              args:
+                name: leave-service
+                fallbackUri: forward:/fallback/leave
+
+        # Admin Reset Leave Balances -> Leave Service
+        - id: admin-reset-leave-balances
+          uri: lb://leave-service
+          predicates:
+            - Path=/api/admin/reset-leave-balances/**
+          filters:
+            - AuthenticationFilter
+            - RewritePath=/api/admin/reset-leave-balances(?<segment>.*), /api/leaves/admin/reset-balances${segment}
+            - name: CircuitBreaker
+              args:
+                name: leave-service
+                fallbackUri: forward:/fallback/leave
+
+        # Admin Routes -> Employee Service
+        - id: admin-service
+          uri: lb://employee-service
+          predicates:
+            - Path=/api/admin/**
+          filters:
+            - AuthenticationFilter
+            - name: CircuitBreaker
+              args:
+                name: employee-service
+                fallbackUri: forward:/fallback/employee
+
+        # Leave Service
+        - id: leave-service
+          uri: lb://leave-service
+          predicates:
+            - Path=/api/leaves/**
+          filters:
+            - AuthenticationFilter
+            - name: CircuitBreaker
+              args:
+                name: leave-service
+                fallbackUri: forward:/fallback/leave
+
+        # Performance Service
+        - id: performance-service
+          uri: lb://performance-service
+          predicates:
+            - Path=/api/performance/**
+          filters:
+            - AuthenticationFilter
+            - name: CircuitBreaker
+              args:
+                name: performance-service
+                fallbackUri: forward:/fallback/performance
+
+eureka:
+  client:
+    service-url:
+      defaultZone: http://localhost:8761/eureka/
+  instance:
+    prefer-ip-address: true
+
+app:
+  jwt:
+    secret: Abhidata2024SecretKeyForJWTTokenGenerationMustBe256BitsLong
+
+resilience4j:
+  circuitbreaker:
+    instances:
+      auth-service:
+        slidingWindowSize: 10
+        failureRateThreshold: 50
+        waitDurationInOpenState: 10s
+        permittedNumberOfCallsInHalfOpenState: 3
+      employee-service:
+        slidingWindowSize: 10
+        failureRateThreshold: 50
+        waitDurationInOpenState: 10s
+      leave-service:
+        slidingWindowSize: 10
+        failureRateThreshold: 50
+        waitDurationInOpenState: 10s
+      performance-service:
+        slidingWindowSize: 10
+        failureRateThreshold: 50
+        waitDurationInOpenState: 10s
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,gateway,circuitbreakers

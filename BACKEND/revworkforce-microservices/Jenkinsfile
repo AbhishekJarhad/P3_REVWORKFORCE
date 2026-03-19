@@ -1,0 +1,140 @@
+pipeline {
+    agent any
+
+    environment {
+        AWS_REGION        = 'ap-south-1'
+        ECR_REGISTRY      = "${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com"
+        IMAGE_TAG         = "${env.GIT_COMMIT}"
+        SERVICES          = 'eureka-server config-server api-gateway auth-service employee-service leave-service performance-service'
+    }
+
+    tools {
+        jdk 'JDK-17'
+        maven 'Maven-3.9'
+    }
+
+    stages {
+
+        // ── Stage 1: Checkout ──────────────────────────────────────
+        stage('Checkout') {
+            steps {
+                git branch: 'main',
+                    credentialsId: 'github-credentials',
+                    url: 'https://github.com/your-org/revworkforce-microservices.git'
+            }
+        }
+
+        // ── Stage 2: Build All Services ────────────────────────────
+        stage('Build') {
+            parallel {
+                stage('eureka-server')      { steps { dir('eureka-server')      { sh 'mvn clean package -DskipTests' } } }
+                stage('config-server')      { steps { dir('config-server')      { sh 'mvn clean package -DskipTests' } } }
+                stage('api-gateway')        { steps { dir('api-gateway')        { sh 'mvn clean package -DskipTests' } } }
+                stage('auth-service')       { steps { dir('auth-service')       { sh 'mvn clean package -DskipTests' } } }
+                stage('employee-service')   { steps { dir('employee-service')   { sh 'mvn clean package -DskipTests' } } }
+                stage('leave-service')      { steps { dir('leave-service')      { sh 'mvn clean package -DskipTests' } } }
+                stage('performance-service'){ steps { dir('performance-service'){ sh 'mvn clean package -DskipTests' } } }
+            }
+        }
+
+        // ── Stage 3: Unit Tests ────────────────────────────────────
+        stage('Test') {
+            parallel {
+                stage('test-auth')        { steps { dir('auth-service')       { sh 'mvn test' } } }
+                stage('test-employee')    { steps { dir('employee-service')   { sh 'mvn test' } } }
+                stage('test-leave')       { steps { dir('leave-service')      { sh 'mvn test' } } }
+                stage('test-performance') { steps { dir('performance-service'){ sh 'mvn test' } } }
+            }
+            post {
+                always {
+                    junit '**/target/surefire-reports/*.xml'
+                }
+            }
+        }
+
+        // ── Stage 4: Docker Build & Push to ECR ────────────────────
+        stage('Docker Build & Push') {
+            when {
+                branch 'main'
+            }
+            steps {
+                withCredentials([[$class: 'AmazonWebServicesCredentialsBinding',
+                                  credentialsId: 'aws-credentials']]) {
+                    script {
+                        sh """
+                            aws ecr get-login-password --region ${AWS_REGION} | \
+                              docker login --username AWS --password-stdin ${ECR_REGISTRY}
+                        """
+                        for (service in SERVICES.split(' ')) {
+                            sh """
+                                cd ${service}
+                                docker build -t ${ECR_REGISTRY}/revworkforce-${service}:${IMAGE_TAG} .
+                                docker build -t ${ECR_REGISTRY}/revworkforce-${service}:latest .
+                                docker push ${ECR_REGISTRY}/revworkforce-${service}:${IMAGE_TAG}
+                                docker push ${ECR_REGISTRY}/revworkforce-${service}:latest
+                                cd ..
+                            """
+                        }
+                    }
+                }
+            }
+        }
+
+        // ── Stage 5: Deploy to EC2 ─────────────────────────────────
+        stage('Deploy to EC2') {
+            when {
+                branch 'main'
+            }
+            steps {
+                withCredentials([
+                    sshUserPrivateKey(credentialsId: 'ec2-ssh-key', keyFileVariable: 'SSH_KEY'),
+                    [$class: 'AmazonWebServicesCredentialsBinding', credentialsId: 'aws-credentials']
+                ]) {
+                    script {
+                        def ec2Host = env.EC2_HOST
+
+                        // Copy compose file to EC2
+                        sh """
+                            scp -i ${SSH_KEY} -o StrictHostKeyChecking=no \
+                              docker-compose.prod.yml init-db.sql \
+                              ec2-user@${ec2Host}:/home/ec2-user/revworkforce/
+                        """
+
+                        // Deploy
+                        sh """
+                            ssh -i ${SSH_KEY} -o StrictHostKeyChecking=no ec2-user@${ec2Host} '
+                                cd /home/ec2-user/revworkforce
+
+                                aws ecr get-login-password --region ${AWS_REGION} | \
+                                  docker login --username AWS --password-stdin ${ECR_REGISTRY}
+
+                                export IMAGE_TAG=${IMAGE_TAG}
+                                export ECR_REGISTRY=${ECR_REGISTRY}
+
+                                docker-compose -f docker-compose.prod.yml pull
+                                docker-compose -f docker-compose.prod.yml up -d --remove-orphans
+                                docker image prune -f
+
+                                echo "Deployment successful!"
+                            '
+                        """
+                    }
+                }
+            }
+        }
+    }
+
+    // ── Post Actions ───────────────────────────────────────────────
+    post {
+        success {
+            echo 'Pipeline succeeded! RevWorkforce deployed successfully.'
+        }
+        failure {
+            echo 'Pipeline failed! Check logs above.'
+            // Add email/Slack notification here if needed
+        }
+        always {
+            cleanWs()
+        }
+    }
+}

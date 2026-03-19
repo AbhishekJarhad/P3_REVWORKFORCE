@@ -1,0 +1,33 @@
+app:
+  jwt:
+    secret: Abhidata2024SecretKeyForJWTTokenGenerationMustBe256BitsLong
+
+spring:
+  redis:
+    host: localhost
+    port: 6379
+
+resilience4j:
+  circuitbreaker:
+    instances:
+      auth-service:
+        slidingWindowSize: 10
+        failureRateThreshold: 50
+        waitDurationInOpenState: 10s
+      employee-service:
+        slidingWindowSize: 10
+        failureRateThreshold: 50
+        waitDurationInOpenState: 10s
+      leave-service:
+        slidingWindowSize: 10
+        failureRateThreshold: 50
+        waitDurationInOpenState: 10s
+      performance-service:
+        slidingWindowSize: 10
+        failureRateThreshold: 50
+        waitDurationInOpenState: 10s
+
+logging:
+  level:
+    org.springframework.cloud.gateway: DEBUG
+    com.revworkforce.gateway: DEBUG
