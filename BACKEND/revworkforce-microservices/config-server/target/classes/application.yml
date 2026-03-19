@@ -1,0 +1,35 @@
+server:
+  port: 8888
+
+spring:
+  application:
+    name: config-server
+  profiles:
+    active: native
+  cloud:
+    config:
+      server:
+        native:
+          search-locations: classpath:/configs
+        # Uncomment below to use Git instead of native
+        # git:
+        #   uri: https://github.com/your-org/revworkforce-config
+        #   default-label: main
+        #   clone-on-start: true
+
+eureka:
+  client:
+    service-url:
+      defaultZone: http://localhost:8761/eureka/
+  instance:
+    prefer-ip-address: true
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,refresh
+
+logging:
+  level:
+    com.revworkforce.config: DEBUG
