@@ -1,0 +1,117 @@
+<div class="page-content">
+  <div class="page-header">
+    <div>
+      <h1>My Goals</h1>
+      <p>Track your professional goals and progress</p>
+    </div>
+    <button class="btn btn-primary" (click)="openCreate()">+ New Goal</button>
+  </div>
+
+  <div class="grid-3 summary-row">
+    <div class="stat-card">
+      <div class="stat-label">Total Goals</div>
+      <div class="stat-value">{{ goals().length }}</div>
+    </div>
+    <div class="stat-card accent-green">
+      <div class="stat-label">Completed</div>
+      <div class="stat-value">{{ completedCount() }}</div>
+    </div>
+    <div class="stat-card accent-amber">
+      <div class="stat-label">In Progress</div>
+      <div class="stat-value">{{ inProgressCount() }}</div>
+    </div>
+  </div>
+
+  @if (loading()) {
+    <div class="loading-overlay"><div class="spinner"></div></div>
+  } @else {
+    <div class="goals-grid">
+      @for (goal of goals(); track goal.id) {
+        <div class="card goal-card">
+          <div class="goal-top">
+            <div>
+              <div class="goal-title">{{ goal.title }}</div>
+              <div class="goal-year">{{ goal.year }}</div>
+            </div>
+            <span class="badge badge-{{ goal.status.toLowerCase() }}">{{ goal.status }}</span>
+          </div>
+          @if (goal.description) {
+            <p class="goal-desc">{{ goal.description }}</p>
+          }
+          <div class="goal-progress">
+            <div class="goal-progress-header">
+              <span>Progress</span>
+              <span class="progress-pct">{{ goal.progressPercentage }}%</span>
+            </div>
+            <div class="progress-bar">
+              <div class="progress-fill" [style.width.%]="goal.progressPercentage"></div>
+            </div>
+          </div>
+          @if (goal.targetDate) {
+            <div class="goal-deadline">&#9711; Target: {{ goal.targetDate | date:'mediumDate' }}</div>
+          }
+          <div class="goal-footer">
+            <button class="btn btn-secondary btn-sm" (click)="openEdit(goal)">Edit</button>
+            <button class="btn btn-danger btn-sm" (click)="deleteGoal(goal.id)">Delete</button>
+          </div>
+        </div>
+      } @empty {
+        <div class="empty-state full-col">
+          <div class="empty-icon">&#9711;</div>
+          <h3>No goals yet</h3>
+          <p>Set your first professional goal to track your growth</p>
+        </div>
+      }
+    </div>
+  }
+</div>
+
+@if (showModal()) {
+  <div class="modal-overlay" (click)="closeModal()">
+    <div class="modal" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h2>{{ editTarget() ? 'Edit Goal' : 'New Goal' }}</h2>
+        <button (click)="closeModal()">&#x2715;</button>
+      </div>
+      @if (error()) { <div class="alert alert-error">{{ error() }}</div> }
+      <form [formGroup]="goalForm" (ngSubmit)="save()">
+        <div class="form-group">
+          <label>Title *</label>
+          <input formControlName="title" placeholder="e.g., Complete React certification">
+        </div>
+        <div class="form-group">
+          <label>Description</label>
+          <textarea formControlName="description" placeholder="Describe your goal in detail..."></textarea>
+        </div>
+        <div class="grid-2">
+          <div class="form-group">
+            <label>Year *</label>
+            <input formControlName="year" type="number" [placeholder]="currentYear">
+          </div>
+          <div class="form-group">
+            <label>Target Date</label>
+            <input formControlName="targetDate" type="date">
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Status</label>
+          <select formControlName="status">
+            <option value="NOT_STARTED">Not Started</option>
+            <option value="IN_PROGRESS">In Progress</option>
+            <option value="COMPLETED">Completed</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Progress: {{ goalForm.get('progressPercentage')?.value }}%</label>
+          <input formControlName="progressPercentage" type="range" min="0" max="100" step="5" class="range-input">
+        </div>
+        <div class="modal-actions">
+          <button type="button" class="btn btn-secondary" (click)="closeModal()">Cancel</button>
+          <button type="submit" class="btn btn-primary" [disabled]="saving()">
+            {{ saving() ? 'Saving...' : (editTarget() ? 'Update Goal' : 'Create Goal') }}
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+}

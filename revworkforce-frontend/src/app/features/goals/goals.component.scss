@@ -1,0 +1,59 @@
+.summary-row { margin-bottom: 28px; }
+.accent-green { --accent: var(--accent-green); }
+.accent-amber { --accent: var(--accent-amber); }
+
+.goals-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 16px;
+}
+
+.full-col { grid-column: 1 / -1; }
+
+.goal-card {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.goal-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.goal-title {
+  font-family: var(--font-display);
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.goal-year { font-size: 0.75rem; color: var(--text-muted); margin-top: 2px; }
+.goal-desc { font-size: 0.85rem; color: var(--text-secondary); line-height: 1.5; }
+
+.goal-progress-header {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  margin-bottom: 6px;
+}
+
+.progress-pct { font-weight: 600; color: var(--accent-green); }
+
+.goal-deadline { font-size: 0.78rem; color: var(--text-muted); }
+
+.goal-footer {
+  display: flex;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.range-input {
+  padding: 0;
+  height: auto;
+  background: none;
+  border: none;
+  accent-color: var(--accent);
+}

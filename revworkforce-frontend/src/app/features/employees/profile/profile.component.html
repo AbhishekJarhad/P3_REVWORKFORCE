@@ -1,0 +1,80 @@
+<div class="page-content">
+  <div class="page-header">
+    <div>
+      <h1>My Profile</h1>
+      <p>View and update your personal information</p>
+    </div>
+  </div>
+
+  @if (loading()) {
+    <div class="loading-overlay"><div class="spinner"></div></div>
+  } @else if (user()) {
+    <div class="profile-grid">
+
+      <div class="card profile-card">
+        <div class="avatar avatar-lg">{{ initials() }}</div>
+        <h2 class="profile-name">{{ user()!.firstName }} {{ user()!.lastName }}</h2>
+        <div class="profile-designation">{{ user()!.designation || 'No designation' }}</div>
+        <div class="profile-dept">{{ user()!.department || 'No department' }}</div>
+        <div class="profile-badges">
+          <span class="badge badge-{{ user()!.status.toLowerCase() }}">{{ user()!.status }}</span>
+          <span class="badge badge-submitted">{{ user()!.role }}</span>
+        </div>
+        <div class="profile-details">
+          <div class="detail-item">
+            <span class="detail-label">Employee Code</span>
+            <span class="detail-value">{{ user()!.employeeCode || '—' }}</span>
+          </div>
+          <div class="detail-item">
+            <span class="detail-label">Email</span>
+            <span class="detail-value">{{ user()!.email }}</span>
+          </div>
+          <div class="detail-item">
+            <span class="detail-label">Date of Joining</span>
+            <span class="detail-value">{{ user()!.dateOfJoining | date:'mediumDate' }}</span>
+          </div>
+          @if (user()!.manager) {
+            <div class="detail-item">
+              <span class="detail-label">Reports To</span>
+              <span class="detail-value">{{ user()!.manager!.firstName }} {{ user()!.manager!.lastName }}</span>
+            </div>
+          }
+        </div>
+      </div>
+
+      <div class="card">
+        <h2 class="edit-title">Edit Information</h2>
+        @if (saved()) {
+          <div class="alert alert-success">Profile updated successfully!</div>
+        }
+        @if (error()) {
+          <div class="alert alert-error">{{ error() }}</div>
+        }
+        <form [formGroup]="form" (ngSubmit)="save()">
+          <div class="grid-2">
+            <div class="form-group">
+              <label>First Name</label>
+              <input formControlName="firstName" placeholder="First name">
+            </div>
+            <div class="form-group">
+              <label>Last Name</label>
+              <input formControlName="lastName" placeholder="Last name">
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Phone Number</label>
+            <input formControlName="phone" placeholder="+91-9876543210">
+          </div>
+          <div class="form-group">
+            <label>Address</label>
+            <textarea formControlName="address" placeholder="Your address..."></textarea>
+          </div>
+          <button type="submit" class="btn btn-primary" [disabled]="saving()">
+            {{ saving() ? 'Saving...' : 'Save Changes' }}
+          </button>
+        </form>
+      </div>
+
+    </div>
+  }
+</div>

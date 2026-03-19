@@ -1,0 +1,35 @@
+.filters {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+
+  .search-input { flex: 1; min-width: 200px; }
+  select { width: 140px; }
+}
+
+.table-card { padding: 0; overflow: hidden; }
+
+.emp-cell {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.emp-avatar {
+  width: 32px;
+  height: 32px;
+  font-size: 0.75rem;
+}
+
+.emp-name  { font-weight: 500; }
+.emp-email { font-size: 0.75rem; color: var(--text-muted); }
+.date-col  { color: var(--text-secondary); }
+
+.action-btns {
+  display: flex;
+  gap: 6px;
+}
+
+.assign-modal { max-width: 400px; }
+.assign-desc  { color: var(--text-secondary); font-size: 0.875rem; margin-bottom: 16px; }

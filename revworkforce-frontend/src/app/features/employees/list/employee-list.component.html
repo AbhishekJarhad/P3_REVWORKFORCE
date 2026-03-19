@@ -1,0 +1,172 @@
+<div class="page-content">
+  <div class="page-header">
+    <div>
+      <h1>{{ auth.isAdmin ? 'All Employees' : 'My Team' }}</h1>
+      <p>{{ filteredEmployees().length }} member{{ filteredEmployees().length !== 1 ? 's' : '' }}</p>
+    </div>
+    @if (auth.isAdmin) {
+      <button class="btn btn-primary" (click)="showCreate.set(true)">+ Add Employee</button>
+    }
+  </div>
+
+  <div class="filters">
+    <input [(ngModel)]="searchTerm" placeholder="Search name, email, department..." class="search-input">
+    <select [(ngModel)]="roleFilter">
+      <option value="">All Roles</option>
+      <option value="ADMIN">Admin</option>
+      <option value="MANAGER">Manager</option>
+      <option value="EMPLOYEE">Employee</option>
+    </select>
+    <select [(ngModel)]="statusFilter">
+      <option value="">All Status</option>
+      <option value="ACTIVE">Active</option>
+      <option value="INACTIVE">Inactive</option>
+    </select>
+  </div>
+
+  @if (loading()) {
+    <div class="loading-overlay"><div class="spinner"></div></div>
+  } @else {
+    <div class="card table-card">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Employee</th>
+            <th>Code</th>
+            <th>Department</th>
+            <th>Role</th>
+            <th>Manager</th>
+            <th>Joined</th>
+            <th>Status</th>
+            @if (auth.isAdmin) { <th>Actions</th> }
+          </tr>
+        </thead>
+        <tbody>
+          @for (emp of filteredEmployees(); track emp.id) {
+            <tr>
+              <td>
+                <div class="emp-cell">
+                  <div class="avatar emp-avatar">{{ (emp.firstName[0] + emp.lastName[0]).toUpperCase() }}</div>
+                  <div>
+                    <div class="emp-name">{{ emp.firstName }} {{ emp.lastName }}</div>
+                    <div class="emp-email">{{ emp.email }}</div>
+                  </div>
+                </div>
+              </td>
+              <td><span class="tag">{{ emp.employeeCode || '—' }}</span></td>
+              <td>{{ emp.department || '—' }}</td>
+              <td>
+                <span class="badge badge-{{ emp.role === 'ADMIN' ? 'submitted' : emp.role === 'MANAGER' ? 'pending' : 'approved' }}">
+                  {{ emp.role }}
+                </span>
+              </td>
+              <td>
+                @if (emp.manager) { <span>{{ emp.manager.firstName }} {{ emp.manager.lastName }}</span> }
+                @else { <span class="text-muted">—</span> }
+              </td>
+              <td class="date-col">{{ emp.dateOfJoining | date:'mediumDate' }}</td>
+              <td><span class="badge badge-{{ emp.status.toLowerCase() }}">{{ emp.status }}</span></td>
+              @if (auth.isAdmin) {
+                <td>
+                  <div class="action-btns">
+                    <button class="btn btn-secondary btn-sm" (click)="openAssign(emp)">Assign Mgr</button>
+                    <button class="btn btn-sm" [class.btn-danger]="emp.status === 'ACTIVE'" [class.btn-success]="emp.status === 'INACTIVE'" (click)="toggleStatus(emp.id)">
+                      {{ emp.status === 'ACTIVE' ? 'Deactivate' : 'Activate' }}
+                    </button>
+                  </div>
+                </td>
+              }
+            </tr>
+          } @empty {
+            <tr>
+              <td colspan="8">
+                <div class="empty-state">
+                  <div class="empty-icon">&#9672;</div>
+                  <h3>No employees found</h3>
+                  <p>Try adjusting your search or filters</p>
+                </div>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  }
+</div>
+
+@if (showCreate()) {
+  <div class="modal-overlay" (click)="showCreate.set(false)">
+    <div class="modal" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h2>Add New Employee</h2>
+        <button (click)="showCreate.set(false)">&#x2715;</button>
+      </div>
+      @if (createError()) { <div class="alert alert-error">{{ createError() }}</div> }
+      <form [formGroup]="createForm" (ngSubmit)="createEmployee()">
+        <div class="grid-2">
+          <div class="form-group"><label>First Name *</label><input formControlName="firstName" placeholder="First name"></div>
+          <div class="form-group"><label>Last Name *</label><input formControlName="lastName" placeholder="Last name"></div>
+        </div>
+        <div class="form-group"><label>Email *</label><input formControlName="email" type="email" placeholder="email&#64;company.com"></div>
+        <div class="form-group"><label>Password *</label><input formControlName="password" type="password" placeholder="Set password"></div>
+        <div class="grid-2">
+          <div class="form-group"><label>Employee Code</label><input formControlName="employeeCode" placeholder="EMP005"></div>
+          <div class="form-group">
+            <label>Role *</label>
+            <select formControlName="role">
+              <option value="EMPLOYEE">Employee</option>
+              <option value="MANAGER">Manager</option>
+              <option value="ADMIN">Admin</option>
+            </select>
+          </div>
+        </div>
+        <div class="grid-2">
+          <div class="form-group"><label>Department</label><input formControlName="department" placeholder="Engineering"></div>
+          <div class="form-group"><label>Designation</label><input formControlName="designation" placeholder="Software Engineer"></div>
+        </div>
+        <div class="grid-2">
+          <div class="form-group"><label>Phone</label><input formControlName="phone" placeholder="+91-9876543210"></div>
+          <div class="form-group"><label>Date of Joining</label><input formControlName="dateOfJoining" type="date"></div>
+        </div>
+        <div class="form-group">
+          <label>Manager</label>
+          <select formControlName="managerId">
+            <option [ngValue]="null">No manager</option>
+            @for (m of managers(); track m.id) {
+              <option [ngValue]="m.id">{{ m.firstName }} {{ m.lastName }}</option>
+            }
+          </select>
+        </div>
+        <div class="modal-actions">
+          <button type="button" class="btn btn-secondary" (click)="showCreate.set(false)">Cancel</button>
+          <button type="submit" class="btn btn-primary" [disabled]="creating()">{{ creating() ? 'Creating...' : 'Create Employee' }}</button>
+        </div>
+      </form>
+    </div>
+  </div>
+}
+
+@if (assignTarget()) {
+  <div class="modal-overlay" (click)="assignTarget.set(null)">
+    <div class="modal assign-modal" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h2>Assign Manager</h2>
+        <button (click)="assignTarget.set(null)">&#x2715;</button>
+      </div>
+      <p class="assign-desc">Select a manager for <strong>{{ assignTarget()!.firstName }} {{ assignTarget()!.lastName }}</strong></p>
+      <div class="form-group">
+        <label>Manager</label>
+        <select [(ngModel)]="selectedManagerId">
+          <option [ngValue]="null">No manager</option>
+          @for (m of managers(); track m.id) {
+            <option [ngValue]="m.id">{{ m.firstName }} {{ m.lastName }} — {{ m.designation }}</option>
+          }
+        </select>
+      </div>
+      <div class="modal-actions">
+        <button class="btn btn-secondary" (click)="assignTarget.set(null)">Cancel</button>
+        <button class="btn btn-primary" (click)="assignManager()">Assign</button>
+      </div>
+    </div>
+  </div>
+}

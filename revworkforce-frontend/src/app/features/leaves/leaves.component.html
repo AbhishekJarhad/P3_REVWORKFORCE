@@ -1,0 +1,151 @@
+<div class="page-content">
+  <div class="page-header">
+    <div>
+      <h1>Leave Management</h1>
+      <p>Apply and track your leave requests</p>
+    </div>
+    <button class="btn btn-primary" (click)="showApply.set(true)">+ Apply Leave</button>
+  </div>
+
+  <div class="grid-3 balance-row">
+    @for (b of balance(); track b.id) {
+      <div class="stat-card" [style]="balanceStyle(b.leaveType)">
+        <div class="stat-label">{{ b.leaveType }} Leave</div>
+        <div class="stat-value">{{ b.remainingDays }}</div>
+        <div class="balance-sub">{{ b.usedDays }} used of {{ b.totalDays }} total</div>
+        <div class="progress-bar" style="margin-top:10px;">
+          <div class="progress-fill" [style.width.%]="(b.usedDays / b.totalDays) * 100"></div>
+        </div>
+      </div>
+    }
+  </div>
+
+  <div class="tabs">
+    <button class="tab" [class.active]="activeTab() === 'mine'" (click)="activeTab.set('mine')">My Leaves</button>
+    @if (auth.isManagerOrAdmin) {
+      <button class="tab" [class.active]="activeTab() === 'pending'" (click)="loadPending()">
+        Team Pending
+        @if (pendingLeaves().length > 0) {
+          <span class="tab-badge">{{ pendingLeaves().length }}</span>
+        }
+      </button>
+      <button class="tab" [class.active]="activeTab() === 'team'" (click)="loadTeamAll()">All Team Leaves</button>
+    }
+    @if (auth.isAdmin) {
+      <button class="tab" [class.active]="activeTab() === 'all'" (click)="loadAll()">All Leaves</button>
+    }
+  </div>
+
+  <div class="card table-card">
+    <table class="data-table">
+      <thead>
+        <tr>
+          @if (activeTab() !== 'mine') { <th>Employee</th> }
+          <th>Type</th><th>From</th><th>To</th><th>Days</th><th>Reason</th><th>Applied</th><th>Status</th><th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (leave of currentLeaves(); track leave.id) {
+          <tr>
+            @if (activeTab() !== 'mine') {
+              <td>
+                <div class="emp-name">{{ leave.employeeName }}</div>
+                <div class="emp-dept">{{ leave.department }}</div>
+              </td>
+            }
+            <td><span class="tag">{{ leave.leaveType }}</span></td>
+            <td>{{ leave.startDate | date:'mediumDate' }}</td>
+            <td>{{ leave.endDate | date:'mediumDate' }}</td>
+            <td class="days-col">{{ leave.numberOfDays }}d</td>
+            <td class="reason-col">{{ leave.reason || '—' }}</td>
+            <td class="date-col">{{ leave.appliedAt | date:'mediumDate' }}</td>
+            <td><span class="badge badge-{{ leave.status.toLowerCase() }}">{{ leave.status }}</span></td>
+            <td>
+              @if (leave.status === 'PENDING' && activeTab() === 'mine') {
+                <button class="btn btn-danger btn-sm" (click)="cancelLeave(leave.id)">Cancel</button>
+              }
+              @if (leave.status === 'PENDING' && auth.isManagerOrAdmin && activeTab() !== 'mine') {
+                <div class="action-btns">
+                  <button class="btn btn-success btn-sm" (click)="processLeave(leave.id, 'APPROVE')">Approve</button>
+                  <button class="btn btn-danger btn-sm" (click)="processLeave(leave.id, 'REJECT')">Reject</button>
+                </div>
+              }
+            </td>
+          </tr>
+        } @empty {
+          <tr>
+            <td colspan="9">
+              <div class="empty-state">
+                <div class="empty-icon">&#9711;</div>
+                <h3>No leave requests</h3>
+              </div>
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+</div>
+
+@if (showApply()) {
+  <div class="modal-overlay" (click)="showApply.set(false)">
+    <div class="modal" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h2>Apply for Leave</h2>
+        <button (click)="showApply.set(false)">&#x2715;</button>
+      </div>
+      @if (applyError()) { <div class="alert alert-error">{{ applyError() }}</div> }
+      <form [formGroup]="applyForm" (ngSubmit)="applyLeave()">
+        <div class="form-group">
+          <label>Leave Type</label>
+          <select formControlName="leaveType">
+            <option value="CASUAL">Casual Leave</option>
+            <option value="SICK">Sick Leave</option>
+            <option value="PAID">Paid Leave</option>
+          </select>
+        </div>
+        <div class="grid-2">
+          <div class="form-group">
+            <label>Start Date</label>
+            <input formControlName="startDate" type="date">
+          </div>
+          <div class="form-group">
+            <label>End Date</label>
+            <input formControlName="endDate" type="date">
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Reason</label>
+          <textarea formControlName="reason" placeholder="Brief reason for leave..."></textarea>
+        </div>
+        <div class="modal-actions">
+          <button type="button" class="btn btn-secondary" (click)="showApply.set(false)">Cancel</button>
+          <button type="submit" class="btn btn-primary" [disabled]="applying()">
+            {{ applying() ? 'Applying...' : 'Apply Leave' }}
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+}
+
+@if (processTarget() !== null) {
+  <div class="modal-overlay" (click)="processTarget.set(null)">
+    <div class="modal process-modal" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h2>{{ processAction() === 'APPROVE' ? 'Approve' : 'Reject' }} Leave</h2>
+        <button (click)="processTarget.set(null)">&#x2715;</button>
+      </div>
+      <div class="form-group">
+        <label>Comment (optional)</label>
+        <textarea [(ngModel)]="processComment" placeholder="Add a comment..."></textarea>
+      </div>
+      <div class="modal-actions">
+        <button class="btn btn-secondary" (click)="processTarget.set(null)">Cancel</button>
+        <button [class]="processAction() === 'APPROVE' ? 'btn btn-success' : 'btn btn-danger'" (click)="confirmProcess()">
+          {{ processAction() === 'APPROVE' ? 'Approve' : 'Reject' }}
+        </button>
+      </div>
+    </div>
+  </div>
+}

@@ -1,0 +1,147 @@
+<div class="page-content">
+  <div class="page-header">
+    <div>
+      <h1>Good {{ timeGreeting() }}, {{ auth.currentUser?.firstName }} 👋</h1>
+      <p>Here's what's happening today — {{ today() }}</p>
+    </div>
+  </div>
+
+  @if (auth.isAdmin && stats()) {
+    <div class="grid-4 mb-stats">
+      <div class="stat-card">
+        <span class="stat-icon">◈</span>
+        <div class="stat-label">Total Employees</div>
+        <div class="stat-value">{{ stats()!.totalEmployees }}</div>
+      </div>
+      <div class="stat-card accent-green">
+        <span class="stat-icon">◉</span>
+        <div class="stat-label">Active</div>
+        <div class="stat-value">{{ stats()!.activeEmployees }}</div>
+      </div>
+      <div class="stat-card accent-amber">
+        <span class="stat-icon">◬</span>
+        <div class="stat-label">Managers</div>
+        <div class="stat-value">{{ stats()!.totalManagers }}</div>
+      </div>
+      <div class="stat-card accent-red">
+        <span class="stat-icon">⬡</span>
+        <div class="stat-label">Inactive</div>
+        <div class="stat-value">{{ stats()!.inactiveEmployees }}</div>
+      </div>
+    </div>
+  }
+
+  <div class="dashboard-grid">
+    <!-- Leave Balances -->
+    <div class="card">
+      <div class="section-header">
+        <h2>Leave Balance</h2>
+        <a routerLink="/leaves" class="btn btn-secondary btn-sm">View All</a>
+      </div>
+      @if (leaveLoading()) {
+        <div class="loading-overlay"><div class="spinner"></div></div>
+      } @else {
+        <div class="balance-cards">
+          @for (b of leaveBalance(); track b.id) {
+            <div class="balance-item">
+              <div class="balance-type">{{ b.leaveType }}</div>
+              <div class="balance-numbers">
+                <span class="remaining">{{ b.remainingDays }}</span>
+                <span class="total">/ {{ b.totalDays }}</span>
+              </div>
+              <div class="progress-bar">
+                <div class="progress-fill" [style.width.%]="(b.usedDays / b.totalDays) * 100"></div>
+              </div>
+              <div class="balance-meta">{{ b.usedDays }} used · {{ b.remainingDays }} remaining</div>
+            </div>
+          }
+        </div>
+      }
+    </div>
+
+    <!-- Recent Leaves -->
+    <div class="card">
+      <div class="section-header">
+        <h2>Recent Leave Requests</h2>
+        <a routerLink="/leaves" class="btn btn-secondary btn-sm">Apply Leave</a>
+      </div>
+      @if (recentLeaves().length === 0) {
+        <div class="empty-state" style="padding:32px;">
+          <div class="empty-icon">◷</div>
+          <p>No leave requests yet</p>
+        </div>
+      } @else {
+        <div class="leave-list">
+          @for (leave of recentLeaves(); track leave.id) {
+            <div class="leave-item">
+              <div class="leave-info">
+                <div class="leave-type-tag">{{ leave.leaveType }}</div>
+                <div class="leave-dates">{{ leave.startDate | date:'MMM d' }} – {{ leave.endDate | date:'MMM d, y' }}</div>
+                <div class="leave-days">{{ leave.numberOfDays }} day{{ leave.numberOfDays > 1 ? 's' : '' }}</div>
+              </div>
+              <span class="badge badge-{{ leave.status.toLowerCase() }}">{{ leave.status }}</span>
+            </div>
+          }
+        </div>
+      }
+    </div>
+
+    <!-- Active Goals -->
+    <div class="card">
+      <div class="section-header">
+        <h2>Active Goals</h2>
+        <a routerLink="/goals" class="btn btn-secondary btn-sm">Manage Goals</a>
+      </div>
+      @if (activeGoals().length === 0) {
+        <div class="empty-state" style="padding:32px;">
+          <div class="empty-icon">◉</div>
+          <p>No goals set for this year</p>
+        </div>
+      } @else {
+        <div class="goals-list">
+          @for (goal of activeGoals(); track goal.id) {
+            <div class="goal-item">
+              <div class="goal-header">
+                <span class="goal-title">{{ goal.title }}</span>
+                <span class="badge badge-{{ goal.status.toLowerCase() }}">{{ goal.status }}</span>
+              </div>
+              <div class="progress-bar" style="margin-top:8px;">
+                <div class="progress-fill" [style.width.%]="goal.progressPercentage"></div>
+              </div>
+              <div class="goal-meta">{{ goal.progressPercentage }}% complete</div>
+            </div>
+          }
+        </div>
+      }
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="card">
+      <h2 style="margin-bottom:20px;">Quick Actions</h2>
+      <div class="quick-actions">
+        <a routerLink="/leaves" class="action-card">
+          <span class="action-icon">◷</span>
+          <span class="action-label">Apply for Leave</span>
+        </a>
+        <a routerLink="/performance" class="action-card">
+          <span class="action-icon">◬</span>
+          <span class="action-label">Self Review</span>
+        </a>
+        <a routerLink="/goals" class="action-card">
+          <span class="action-icon">◉</span>
+          <span class="action-label">Set a Goal</span>
+        </a>
+        <a routerLink="/profile" class="action-card">
+          <span class="action-icon">◎</span>
+          <span class="action-label">Edit Profile</span>
+        </a>
+        @if (auth.isManagerOrAdmin) {
+          <a routerLink="/employees" class="action-card">
+            <span class="action-icon">◈</span>
+            <span class="action-label">View Team</span>
+          </a>
+        }
+      </div>
+    </div>
+  </div>
+</div>

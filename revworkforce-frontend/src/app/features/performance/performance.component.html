@@ -1,0 +1,140 @@
+<div class="page-content">
+  <div class="page-header">
+    <div>
+      <h1>Performance Reviews</h1>
+      <p>Track your self-assessments and manager feedback</p>
+    </div>
+    <button class="btn btn-primary" (click)="showCreate.set(true)">+ New Review</button>
+  </div>
+
+  <div class="tabs">
+    <button class="tab" [class.active]="tab() === 'my'" (click)="tab.set('my')">My Reviews</button>
+    @if (auth.isManagerOrAdmin) {
+      <button class="tab" [class.active]="tab() === 'pending'" (click)="loadPending()">
+        Pending Reviews
+        @if (pendingReviews().length > 0) { <span class="tab-badge">{{ pendingReviews().length }}</span> }
+      </button>
+      <button class="tab" [class.active]="tab() === 'team'" (click)="loadTeam()">Team Reviews</button>
+    }
+  </div>
+
+  <div class="reviews-grid">
+    @for (r of displayedReviews(); track r.id) {
+      <div class="card review-card">
+        <div class="review-header">
+          <div>
+            <div class="review-period">{{ r.reviewPeriod }} {{ r.reviewYear }}</div>
+            @if (tab() !== 'my') { <div class="review-emp">{{ r.employeeName }}</div> }
+          </div>
+          <span class="badge badge-{{ r.status.toLowerCase() }}">{{ r.status }}</span>
+        </div>
+        @if (r.selfAssessment) {
+          <div class="review-section">
+            <div class="review-section-label">Self Assessment</div>
+            <p class="review-text">{{ r.selfAssessment }}</p>
+          </div>
+        }
+        @if (r.managerFeedback) {
+          <div class="review-section">
+            <div class="review-section-label">Manager Feedback</div>
+            <p class="review-text">{{ r.managerFeedback }}</p>
+            @if (r.rating) {
+              <div class="rating-display">
+                @for (star of [1,2,3,4,5]; track star) {
+                  <span class="star" [class.filled]="star <= r.rating!">&#9733;</span>
+                }
+                <span class="rating-num">{{ r.rating }}/5</span>
+              </div>
+            }
+          </div>
+        }
+        @if (r.managerName) { <div class="review-meta">Reviewed by {{ r.managerName }}</div> }
+        <div class="review-actions">
+          @if (r.status === 'DRAFT' && tab() === 'my') {
+            <button class="btn btn-secondary btn-sm" (click)="openEdit(r)">Edit</button>
+            <button class="btn btn-primary btn-sm" (click)="submitReview(r.id)">Submit</button>
+          }
+          @if (r.status === 'SUBMITTED' && auth.isManagerOrAdmin && tab() !== 'my') {
+            <button class="btn btn-primary btn-sm" (click)="openFeedback(r)">Add Feedback</button>
+          }
+        </div>
+      </div>
+    } @empty {
+      <div class="empty-state full-col">
+        <div class="empty-icon">&#9651;</div>
+        <h3>No reviews found</h3>
+        <p>Create your first performance review</p>
+      </div>
+    }
+  </div>
+</div>
+
+@if (showCreate()) {
+  <div class="modal-overlay" (click)="closeCreate()">
+    <div class="modal" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h2>{{ editTarget() ? 'Edit Review' : 'New Performance Review' }}</h2>
+        <button (click)="closeCreate()">&#x2715;</button>
+      </div>
+      @if (createError()) { <div class="alert alert-error">{{ createError() }}</div> }
+      <form [formGroup]="reviewForm" (ngSubmit)="saveReview()">
+        <div class="grid-2">
+          <div class="form-group">
+            <label>Year *</label>
+            <input formControlName="reviewYear" type="number" [placeholder]="currentYear">
+          </div>
+          <div class="form-group">
+            <label>Period *</label>
+            <select formControlName="reviewPeriod">
+              <option value="Q1">Q1 (Jan–Mar)</option>
+              <option value="Q2">Q2 (Apr–Jun)</option>
+              <option value="Q3">Q3 (Jul–Sep)</option>
+              <option value="Q4">Q4 (Oct–Dec)</option>
+              <option value="Annual">Annual</option>
+              <option value="Mid-Year">Mid-Year</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Self Assessment</label>
+          <textarea formControlName="selfAssessment" placeholder="Describe your achievements, challenges, and learnings..."></textarea>
+        </div>
+        <div class="modal-actions">
+          <button type="button" class="btn btn-secondary" (click)="closeCreate()">Cancel</button>
+          <button type="submit" class="btn btn-primary" [disabled]="saving()">
+            {{ saving() ? 'Saving...' : (editTarget() ? 'Update' : 'Create Review') }}
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+}
+
+@if (feedbackTarget()) {
+  <div class="modal-overlay" (click)="feedbackTarget.set(null)">
+    <div class="modal" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h2>Add Feedback</h2>
+        <button (click)="feedbackTarget.set(null)">&#x2715;</button>
+      </div>
+      <p class="feedback-desc">Reviewing <strong>{{ feedbackTarget()!.employeeName }}</strong> — {{ feedbackTarget()!.reviewPeriod }} {{ feedbackTarget()!.reviewYear }}</p>
+      <div class="form-group">
+        <label>Manager Feedback</label>
+        <textarea [(ngModel)]="feedbackText" placeholder="Provide your assessment and feedback..."></textarea>
+      </div>
+      <div class="form-group">
+        <label>Rating (1–5)</label>
+        <div class="star-input">
+          @for (star of [1,2,3,4,5]; track star) {
+            <span class="star star-clickable" [class.filled]="star <= feedbackRating" (click)="feedbackRating = star">&#9733;</span>
+          }
+          <span class="rating-hint">{{ feedbackRating > 0 ? feedbackRating + '/5' : 'Click to rate' }}</span>
+        </div>
+      </div>
+      <div class="modal-actions">
+        <button class="btn btn-secondary" (click)="feedbackTarget.set(null)">Cancel</button>
+        <button class="btn btn-primary" (click)="submitFeedback()" [disabled]="!feedbackRating">Submit Feedback</button>
+      </div>
+    </div>
+  </div>
+}

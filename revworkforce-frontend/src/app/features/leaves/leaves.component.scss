@@ -1,0 +1,67 @@
+.balance-row { margin-bottom: 28px; }
+
+.balance-sub {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  margin-top: 4px;
+}
+
+.tabs {
+  display: flex;
+  gap: 4px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 0;
+}
+
+.tab {
+  padding: 10px 20px;
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  font-family: var(--font-body);
+  font-size: 0.875rem;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  transition: var(--transition);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: -1px;
+}
+
+.tab:hover { color: var(--text-primary); }
+.tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+.tab-badge {
+  background: var(--accent);
+  color: #fff;
+  font-size: 0.65rem;
+  font-weight: 700;
+  min-width: 18px;
+  height: 18px;
+  border-radius: 100px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 4px;
+}
+
+.table-card {
+  padding: 0;
+  overflow: hidden;
+  margin-top: 4px;
+}
+
+.emp-name { font-weight: 500; }
+.emp-dept { font-size: 0.75rem; color: var(--text-muted); }
+
+.days-col   { font-weight: 600; }
+.reason-col { max-width: 160px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.date-col   { color: var(--text-secondary); }
+
+.action-btns {
+  display: flex;
+  gap: 6px;
+}
+
+.process-modal { max-width: 400px; }

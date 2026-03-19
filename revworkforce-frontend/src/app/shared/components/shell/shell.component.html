@@ -1,0 +1,64 @@
+<div class="shell">
+  <aside class="sidebar" [class.collapsed]="sidebarCollapsed()">
+    <div class="sidebar-header">
+      <div class="brand">
+        <div class="brand-icon">RW</div>
+        <span class="brand-name">RevWorkforce</span>
+      </div>
+      <button class="collapse-btn" (click)="toggleSidebar()" title="Toggle sidebar">
+        {{ sidebarCollapsed() ? '→' : '←' }}
+      </button>
+    </div>
+
+    <nav class="nav">
+      <a routerLink="/dashboard" routerLinkActive="active" class="nav-item">
+        <span class="nav-icon">⬡</span>
+        <span class="nav-label">Dashboard</span>
+      </a>
+      <a routerLink="/profile" routerLinkActive="active" class="nav-item">
+        <span class="nav-icon">◎</span>
+        <span class="nav-label">My Profile</span>
+      </a>
+      @if (auth.isManagerOrAdmin) {
+        <a routerLink="/employees" routerLinkActive="active" class="nav-item">
+          <span class="nav-icon">◈</span>
+          <span class="nav-label">Employees</span>
+        </a>
+      }
+      <a routerLink="/leaves" routerLinkActive="active" class="nav-item">
+        <span class="nav-icon">◷</span>
+        <span class="nav-label">Leave</span>
+      </a>
+      <a routerLink="/performance" routerLinkActive="active" class="nav-item">
+        <span class="nav-icon">◬</span>
+        <span class="nav-label">Performance</span>
+      </a>
+      <a routerLink="/goals" routerLinkActive="active" class="nav-item">
+        <span class="nav-icon">◉</span>
+        <span class="nav-label">Goals</span>
+      </a>
+      @if (auth.isAdmin) {
+        <div class="nav-divider"></div>
+        <a routerLink="/admin" routerLinkActive="active" class="nav-item nav-item-admin">
+          <span class="nav-icon">⬙</span>
+          <span class="nav-label">Admin Panel</span>
+        </a>
+      }
+    </nav>
+
+    <div class="sidebar-footer">
+      <div class="user-info">
+        <div class="avatar">{{ userInitials() }}</div>
+        <div class="user-details">
+          <div class="user-name">{{ auth.currentUser?.firstName }} {{ auth.currentUser?.lastName }}</div>
+          <div class="user-role">{{ auth.currentUser?.role }}</div>
+        </div>
+      </div>
+      <button class="logout-btn" (click)="logout()" title="Logout">⏻</button>
+    </div>
+  </aside>
+
+  <main class="main-content">
+    <router-outlet />
+  </main>
+</div>

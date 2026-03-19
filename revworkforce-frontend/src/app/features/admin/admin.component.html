@@ -1,0 +1,135 @@
+<div class="page-content">
+  <div class="page-header">
+    <div>
+      <h1>Admin Panel</h1>
+      <p>System configuration and management</p>
+    </div>
+  </div>
+
+  @if (stats()) {
+    <div class="grid-4 stats-row">
+      <div class="stat-card">
+        <span class="stat-icon">&#9672;</span>
+        <div class="stat-label">Total Employees</div>
+        <div class="stat-value">{{ stats()!.totalEmployees }}</div>
+      </div>
+      <div class="stat-card accent-green">
+        <span class="stat-icon">&#9711;</span>
+        <div class="stat-label">Active</div>
+        <div class="stat-value">{{ stats()!.activeEmployees }}</div>
+      </div>
+      <div class="stat-card accent-amber">
+        <span class="stat-icon">&#9651;</span>
+        <div class="stat-label">Managers</div>
+        <div class="stat-value">{{ stats()!.totalManagers }}</div>
+      </div>
+      <div class="stat-card accent-red">
+        <span class="stat-icon">&#11041;</span>
+        <div class="stat-label">Inactive</div>
+        <div class="stat-value">{{ stats()!.inactiveEmployees }}</div>
+      </div>
+    </div>
+  }
+
+  <div class="admin-grid">
+    <div class="card">
+      <h2 class="section-title">Leave Quotas</h2>
+      <div class="quota-list">
+        @for (q of quotas(); track q.id) {
+          <div class="quota-item">
+            <div>
+              <div class="quota-type">{{ q.leaveType }}</div>
+              <div class="quota-year">{{ q.year }}</div>
+            </div>
+            <div class="quota-days">{{ q.defaultDays }} days</div>
+          </div>
+        }
+      </div>
+      <div class="divider"></div>
+      <h3 class="sub-title">Configure Quota</h3>
+      @if (quotaSaved()) { <div class="alert alert-success">Quota updated!</div> }
+      @if (quotaError()) { <div class="alert alert-error">{{ quotaError() }}</div> }
+      <form [formGroup]="quotaForm" (ngSubmit)="saveQuota()">
+        <div class="grid-3">
+          <div class="form-group">
+            <label>Leave Type</label>
+            <select formControlName="leaveType">
+              <option value="CASUAL">Casual</option>
+              <option value="SICK">Sick</option>
+              <option value="PAID">Paid</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Default Days</label>
+            <input formControlName="defaultDays" type="number" min="0" max="365">
+          </div>
+          <div class="form-group">
+            <label>Year</label>
+            <input formControlName="year" type="number">
+          </div>
+        </div>
+        <button type="submit" class="btn btn-primary btn-sm" [disabled]="savingQuota()">
+          {{ savingQuota() ? 'Saving...' : 'Update Quota' }}
+        </button>
+      </form>
+    </div>
+
+    <div class="card">
+      <h2 class="section-title">Reset Leave Balances</h2>
+      <p class="section-desc">Reset all employee leave balances for a new year based on current quotas.</p>
+      @if (resetSuccess()) { <div class="alert alert-success">{{ resetSuccess() }}</div> }
+      @if (resetError())   { <div class="alert alert-error">{{ resetError() }}</div> }
+      <form [formGroup]="resetForm" (ngSubmit)="resetBalances()">
+        <div class="form-group">
+          <label>Year</label>
+          <input formControlName="year" type="number">
+        </div>
+        <div class="warning-box">
+          <p>&#9888; This will create new leave balance records for all employees for the specified year. Existing balances will not be affected.</p>
+        </div>
+        <button type="submit" class="btn btn-danger" [disabled]="resetting()">
+          {{ resetting() ? 'Resetting...' : 'Reset Balances for ' + resetForm.get("year")?.value }}
+        </button>
+      </form>
+    </div>
+
+    <div class="card full-col">
+      <h2 class="section-title">System Accounts</h2>
+      <table class="data-table">
+        <thead>
+          <tr><th>Name</th><th>Email</th><th>Role</th><th>Default Password</th><th>Code</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>System Admin</td>
+            <td>admin&#64;revworkforce.com</td>
+            <td><span class="badge badge-submitted">ADMIN</span></td>
+            <td><span class="tag">admin123</span></td>
+            <td>EMP001</td>
+          </tr>
+          <tr>
+            <td>James Wilson</td>
+            <td>manager&#64;revworkforce.com</td>
+            <td><span class="badge badge-pending">MANAGER</span></td>
+            <td><span class="tag">manager123</span></td>
+            <td>EMP002</td>
+          </tr>
+          <tr>
+            <td>Sarah Connor</td>
+            <td>employee&#64;revworkforce.com</td>
+            <td><span class="badge badge-approved">EMPLOYEE</span></td>
+            <td><span class="tag">employee123</span></td>
+            <td>EMP003</td>
+          </tr>
+          <tr>
+            <td>John Doe</td>
+            <td>john.doe&#64;revworkforce.com</td>
+            <td><span class="badge badge-approved">EMPLOYEE</span></td>
+            <td><span class="tag">employee123</span></td>
+            <td>EMP004</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
